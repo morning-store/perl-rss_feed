@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# •K—v‚Èƒ‰ƒCƒuƒ‰ƒŠ‚Ì“Ç‚İ‚İ
+# å¿…è¦ãªãƒ©ã‚¤ãƒ–ãƒ©ãƒªã®èª­ã¿è¾¼ã¿
 use strict;
 use warnings;
 use Encode;
@@ -9,57 +9,58 @@ use YAML::Tiny;
 use XML::FeedPP;
 use Digest::MD5;
 
-# ˆø”‚Ìƒ`ƒFƒbƒN
+# å¼•æ•°ã®ãƒã‚§ãƒƒã‚¯
 if (@ARGV == 4){
 
 my $ServiceName = $ARGV[0];
 my $source = $ARGV[1];
 my $rssfile =  $ARGV[2];
 my $HashName = $ARGV[3];
-my $HashFile = '/status.yml';
-# print $ServiceName .'.'. $HashName;
+my $haFile = $ServiceName . $HashName . ".status";
+my $HashFile = "/" . $ServiceName . $HashName . ".status";
 
-# ƒnƒbƒVƒ…’lŠi”[ƒtƒ@ƒCƒ‹‚Ì‘¶İƒ`ƒFƒbƒN
-#if (-f $HashFile) {
-# ‰½‚à‚µ‚È‚¢
-#}else{
-#print"ƒtƒ@ƒCƒ‹‚Í‚ ‚è‚Ü‚¹‚ñI\n";
-#ƒtƒ@ƒCƒ‹‚Ìì¬
-#}
 
-# Šeíİ’è’l‚Ìæ“¾
-#my $config = (YAML::Tiny->read($FindBin::Bin . '/config.yml'))->[0];
+# ãƒãƒƒã‚·ãƒ¥å€¤æ ¼ç´ãƒ•ã‚¡ã‚¤ãƒ«ã®å­˜åœ¨ãƒã‚§ãƒƒã‚¯
+if (-f $haFile) {
+#   die "$haFile ã¯ã€ã™ã§ã«å­˜åœ¨ã—ã¾ã™ã€‚";
+}else{
+#ãƒ•ã‚¡ã‚¤ãƒ«ã®ä½œæˆ
+  open (HashStatus, ">", $haFile);
+#    or die ("$HashFile ã‚’æ›¸ãè¾¼ã¿ãƒ¢ãƒ¼ãƒ‰ã§ã‚ªãƒ¼ãƒ—ãƒ³ã™ã‚‹ã“ã¨ãŒã§ãã¾ã›ã‚“ã€‚: $!");
+  print HashStatus $HashName.": ";
+  close (HashStatus);
+}
+
+# å„ç¨®è¨­å®šå€¤ã®å–å¾—
 my $status = (YAML::Tiny->read($FindBin::Bin . $HashFile))->[0];
-#my $source = $config->{'source'};
 my $lastHash = $status->{$HashName};
 
-# RSS ‚Ì“Ç‚İ‚İ
+# RSS ã®èª­ã¿è¾¼ã¿
 my $feed = XML::FeedPP->new($source);
 $feed->sort_item();
 
-# ÅŒãæ“¾‚µ‚½ RSS ƒAƒCƒeƒ€‚æ‚èV‚µ‚¢ RSS ƒAƒCƒeƒ€‚ğ’²‚×‚é
+# æœ€å¾Œå–å¾—ã—ãŸ RSS ã‚¢ã‚¤ãƒ†ãƒ ã‚ˆã‚Šæ–°ã—ã„ RSS ã‚¢ã‚¤ãƒ†ãƒ ã‚’èª¿ã¹ã‚‹
 my @updates;
 for my $item ($feed->get_item()) {
     my $hash = &calcHash($item);
     last if $hash eq $lastHash;
-    # ”z—ñ‚Ì“ª‚©‚ç‹l‚ß‚é
+    # é…åˆ—ã®é ­ã‹ã‚‰è©°ã‚ã‚‹
     unshift(@updates, $item);
 }
-# RSS ‚Ì“à—e‚ğ‡‚Éæ“¾
+# RSS ã®å†…å®¹ã‚’é †ã«å–å¾—
 for my $item (@updates) {
     my $update = $item->pubDate() . ' ' . $item->title() . ' ' . $item->link();
-# æ“¾‚µ‚½ RSS ‚ğo—Í‚·‚é
+# å–å¾—ã—ãŸ RSS ã‚’å‡ºåŠ›ã™ã‚‹
     open (OUT, ">>", $rssfile);
-#   print (OUT $item->pubDate() . ',' . $item->title() . ',' . $item->link() . "\n");
-    print (OUT $item->pubDate() . ',' . $item->title() . ',' . $item->description() .  ',' . $item->link() . "\n");
+    print (OUT "[title]: " . $item->title() . "\n" . "[desc]: " . $item->description() . "\n" . "[link]: " . $item->link() . "\n". "[pubData]: ".$item->pubDate() . "\n\n");
     close (OUT);
     $lastHash = &calcHash($item);
 }
 
-# ÅŒãæ“¾‚µ‚½ RSS ƒAƒCƒeƒ€‚ÌƒnƒbƒVƒ…’l‚ğ•Û‘¶
+# æœ€å¾Œå–å¾—ã—ãŸ RSS ã‚¢ã‚¤ãƒ†ãƒ ã®ãƒãƒƒã‚·ãƒ¥å€¤ã‚’ä¿å­˜
 YAML::Tiny::DumpFile($FindBin::Bin . $HashFile, {$HashName => $lastHash});
 
-# RSS ‚©‚çƒnƒbƒVƒ…’l‚ğŒvZ‚·‚é
+# RSS ã‹ã‚‰ãƒãƒƒã‚·ãƒ¥å€¤ã‚’è¨ˆç®—ã™ã‚‹
 sub calcHash {
     my $item = shift;
     my $id = $item->guid();
@@ -75,5 +76,6 @@ sub calcHash {
 }
 
 }else{
-print "ˆø”‚Ì”‚ª‘«‚è‚Ü‚¹‚ñB\n";
+print "å¼•æ•°ã®æ•°ãŒè¶³ã‚Šã¾ã›ã‚“ã€‚\n";
 }
+
